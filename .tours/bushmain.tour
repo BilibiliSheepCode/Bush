@@ -1,27 +1,6 @@
 {
   "$schema": "https://aka.ms/codetour-schema",
   "title": "BushMain",
-  "steps": [
-    {
-      "file": "Bush.py",
-      "description": "s * (1 - s)",
-      "line": 16
-    },
-    {
-      "file": "Bush.py",
-      "description": "1 - t ^ 2",
-      "line": 23
-    },
-    {
-      "file": "Bush.py",
-      "description": "z >= 0 : 1\r\nz < 0 : 0",
-      "line": 28
-    },
-    {
-      "file": "Bush.py",
-      "description": "z < 0 : 0.01\r\nz >= 0 : 1",
-      "line": 31
-    }
-  ],
+  "steps": [],
   "ref": "main"
 }
