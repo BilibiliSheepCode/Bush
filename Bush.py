@@ -100,13 +100,13 @@ def load_minst(path, kind = "train"):
         images = np.fromfile(imgpath, dtype=np.uint8).reshape(len(labels), 784)
     return images.T, labels
 
-def load(path):
+def load(path, kind = "train"):
     y_trainu = [[1,0,0,0,0,0,0,0,0,0],[0,1,0,0,0,0,0,0,0,0],
             [0,0,1,0,0,0,0,0,0,0],[0,0,0,1,0,0,0,0,0,0],
             [0,0,0,0,1,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0],
             [0,0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,1,0,0],
             [0,0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,0,1]]
-    x_train, y_trainf = load_minst(path)
+    x_train, y_trainf = load_minst(path, kind)
     y_train = np.zeros((y_trainf.shape[0], 10))
     for i in range(y_trainf.shape[0]):
         y_train[i] = np.array(y_trainu[y_trainf[i]])
@@ -114,9 +114,14 @@ def load(path):
 
 x_train, y_train = load("./mnist")
 
+caches = {
+    "A0": x_train,
+    "Y": y_train
+}
+
 hyperparam = {
     "learningrate": 0.1,
-    "m": x_train.shape[1],
+    "m": caches["A0"].shape[1],
     "L": 2,
     "nx": 784,
     "layerdims": [112, 10],
@@ -136,11 +141,6 @@ L = hyperparam["L"]
 sL = str(L)
 
 param = init(hyperparam)
-
-caches = {
-    "A0": x_train,
-    "Y": y_train
-}
 
 if os.path.exists(".\\Params"):
     que = input("Init with last trained param? Y or N")
@@ -170,7 +170,7 @@ while True:
         caches = preproving(param, caches, hyperparam)
         caches = backpropagate(param, caches, hyperparam)
         param = update(param, caches, hyperparam)
-    print(f"cost: {L1(caches['A' + sL], caches['Y'])}")
+    print(f"cost: {L1(caches['A' + sL], caches['Y']) / hyperparam['m']}")
     test = np.array(Image.open(".\\assets\\images\\test.png").convert("L"))
     caches["A0"] = test.reshape((hyperparam["nx"], 1))
     caches = preproving(param, caches, hyperparam)
