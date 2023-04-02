@@ -80,11 +80,11 @@ def update(param, caches, hyperparam):
 
 def init(hyperparam):
     L = hyperparam["L"]
-    layerdims = hyperparam["layerdims"]
+    layerdims = hyperparam["layerdims"].copy()
     layerdims.insert(0, hyperparam["nx"])
     param = {}
     for l in range(L):
-        param["W" + str(l + 1)] = np.random.randn(layerdims[l + 1], layerdims[l]) * 0.01
+        param["W" + str(l + 1)] = np.random.randn(layerdims[l + 1], layerdims[l]) * np.sqrt(2. / layerdims[l])
         param["B" + str(l + 1)] = np.zeros((layerdims[l + 1], 1))
     return param
 
@@ -112,6 +112,19 @@ def load(path, kind = "train"):
         y_train[i] = np.array(y_trainu[y_trainf[i]])
     return x_train, y_train.T
 
+def train(param, caches, hyperparam):
+    preproving(param, caches, hyperparam)
+    backpropagate(param, caches, hyperparam)
+    update(param, caches, hyperparam)
+
+def test(param, caches, hyperparam):
+    sL = str(hyperparam["L"])
+    preproving(param, caches, hyperparam)
+    a = caches['A' + sL]
+    return a, np.argmax(a)
+
+# The thing you need to feed in
+
 x_train, y_train = load("./mnist")
 
 caches = {
@@ -119,13 +132,23 @@ caches = {
     "Y": y_train
 }
 
+param_dir = ".\\Params4L"
+layerdims = [112, 28, 14, 10]
+g = ["tanh", "tanh", "tanh", "softmax"]
+learningrate = 0.01
+nx = 784
+num_it = 100
+
+#---
+
 hyperparam = {
-    "learningrate": 0.1,
+    "learningrate": learningrate,
     "m": caches["A0"].shape[1],
-    "L": 2,
-    "nx": 784,
-    "layerdims": [112, 10],
-    "g": ["tanh", "softmax"],
+    "layerdims": layerdims,
+    "L": len(layerdims),
+    "nx": nx,
+    "g": g,
+    "num_it": num_it,
     "functions": {
         "tanh": tanh,
         "d_tanh": d_tanh,
@@ -137,27 +160,31 @@ hyperparam = {
     }
 }
 
+param = init(hyperparam)
+
 L = hyperparam["L"]
 sL = str(L)
 
-param = init(hyperparam)
-
-if os.path.exists(".\\Params"):
+if os.path.exists(param_dir):
+    que = input("Init with last trained hyperparam? Y or N")
+    if que == "Y" or que == 'y':
+        hyperparam = np.load(param_dir + "\\Hyperparam.npy", allow_pickle = True).item()
+    L = hyperparam["L"]
+    sL = str(L)
     que = input("Init with last trained param? Y or N")
     if que == "Y" or que == 'y':
         for l in range(1, L + 1):
             sl = str(l)
-            d = np.load(".\\Params\\Param" + sl + ".npz")
+            d = np.load(param_dir + "\\Param" + sl + ".npz")
             param["W" + sl], param["B" + sl] = d["arr_0"], d["arr_1"]
 
 que = int(input("Train or test? 0 or 1"))
 if que == 1:
     while True:
-        test = np.array(Image.open(".\\assets\\images\\test.png").convert("L"))
-        caches["A0"] = test.reshape((hyperparam["nx"], 1))
-        caches = preproving(param, caches, hyperparam)
-        print(f"\nPredict: {np.argmax(caches['A' + sL])}")
-        print(f"Rates: \n{caches['A' + sL]}")
+        test_sample = np.array(Image.open(".\\assets\\images\\test.png").convert("L"))
+        caches["A0"] = test_sample.reshape((hyperparam["nx"], 1))
+        a, p = test(param, caches, hyperparam)
+        print(f"\nPredict: {p}\nRates: \n{a}")
         exi = input("Input q to exit or enter to retesting.")
         if exi == 'q' or exi == 'Q':
             break
@@ -166,20 +193,21 @@ if que == 1:
 while True:
     caches["A0"] = x_train
     caches["Y"] = y_train
-    for i in range(1000):
-        caches = preproving(param, caches, hyperparam)
-        caches = backpropagate(param, caches, hyperparam)
-        param = update(param, caches, hyperparam)
+
+    for i in range(hyperparam["num_it"]):
+        train(param, caches, hyperparam)
     print(f"cost: {L1(caches['A' + sL], caches['Y']) / hyperparam['m']}")
-    test = np.array(Image.open(".\\assets\\images\\test.png").convert("L"))
-    caches["A0"] = test.reshape((hyperparam["nx"], 1))
-    caches = preproving(param, caches, hyperparam)
-    print(f"\nPredict: {np.argmax(caches['A' + sL])}")
-    print(f"Rates: \n{caches['A' + sL]}")
+
+    test_sample = np.array(Image.open(".\\assets\\images\\test.png").convert("L"))
+    caches["A0"] = test_sample.reshape((hyperparam["nx"], 1))
+    a, p = test(param, caches, hyperparam)
+    print(f"\nPredict: {p}\nRates: \n{a}")
+
     exi = input("Input q to exit or enter to continue training.")
     if exi == 'q' or exi == 'Q':
         break
 
 for l in range(1, L + 1):
     sl = str(l)
-    np.savez(".\\Params\\Param" + sl,param["W" + sl], param["B" + sl])
+    np.savez(param_dir + "\\Param" + sl,param["W" + sl], param["B" + sl])
+np.save(param_dir + "\\Hyperparam.npy", hyperparam)
