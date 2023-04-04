@@ -72,10 +72,13 @@ def backpropagate(param, caches, hyperparam):
 
 def update(param, caches, hyperparam):
     L = hyperparam["L"]
+    m = hyperparam["m"]
+    r = hyperparam["learningrate"]
+    a = hyperparam["lambd"] / m
     for l in range(1, L + 1):
         sl = str(l)
-        param["W" + sl] -= hyperparam["learningrate"] * caches["dW" + sl]
-        param["B" + sl] -= hyperparam["learningrate"] * caches["dB" + sl]
+        param["W" + sl] = (1 - r * a) * param["W" + sl] - r * caches["dW" + sl]
+        param["B" + sl] -= r * caches["dB" + sl]
     return param
 
 def init(hyperparam):
@@ -138,6 +141,7 @@ g = ["tanh", "tanh", "tanh", "softmax"]
 learningrate = 0.01
 nx = 784
 num_it = 100
+lambd = 0.01
 
 #---
 
@@ -149,6 +153,7 @@ hyperparam = {
     "nx": nx,
     "g": g,
     "num_it": num_it,
+    "lambd": lambd,
     "functions": {
         "tanh": tanh,
         "d_tanh": d_tanh,
