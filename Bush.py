@@ -91,7 +91,7 @@ def init(hyperparam):
         param["B" + str(l + 1)] = np.zeros((layerdims[l + 1], 1))
     return param
 
-def load_minst(path, kind = "train"):
+def load_mnist(path, kind = "train"):
     labels_path = os.path.join(path,"%s-labels.idx1-ubyte" % kind)
     images_path = os.path.join(path,"%s-images.idx3-ubyte" % kind)
     with open(labels_path, "rb") as lbpath:
@@ -109,7 +109,7 @@ def load(path, kind = "train"):
             [0,0,0,0,1,0,0,0,0,0],[0,0,0,0,0,1,0,0,0,0],
             [0,0,0,0,0,0,1,0,0,0],[0,0,0,0,0,0,0,1,0,0],
             [0,0,0,0,0,0,0,0,1,0],[0,0,0,0,0,0,0,0,0,1]]
-    x_train, y_trainf = load_minst(path, kind)
+    x_train, y_trainf = load_mnist(path, kind)
     y_train = np.zeros((y_trainf.shape[0], 10))
     for i in range(y_trainf.shape[0]):
         y_train[i] = np.array(y_trainu[y_trainf[i]])
@@ -126,9 +126,21 @@ def test(param, caches, hyperparam):
     a = caches['A' + sL]
     return a, np.argmax(a)
 
+def save_param(param, L):
+    for l in range(1, L + 1):
+        sl = str(l)
+        np.savez(param_dir + "\\Param" + sl,param["W" + sl], param["B" + sl])
+
+def save_hyperparam(hyperparam):
+    np.save(param_dir + "\\Hyperparam.npy", hyperparam)
+
+
 # The thing you need to feed in
 
-x_train, y_train = load("./mnist")
+x_train_o, y_train_o = load("./mnist")
+
+x_train = x_train_o.copy()
+y_train = y_train_o.copy()
 
 caches = {
     "A0": x_train,
@@ -138,10 +150,11 @@ caches = {
 param_dir = ".\\Params4L"
 layerdims = [112, 28, 14, 10]
 g = ["tanh", "tanh", "tanh", "softmax"]
-learningrate = 0.01
+learningrate = 0.0001
 nx = 784
 num_it = 100
 lambd = 0.01
+noise_size = 3
 
 #---
 
@@ -196,6 +209,12 @@ if que == 1:
     sys.exit(0)
 
 while True:
+
+    x_train = x_train_o.copy()
+
+    for i in range(noise_size):
+        x_train[np.random.randint(0, hyperparam["nx"] - 1)][::] = np.random.randint(0, 255)
+
     caches["A0"] = x_train
     caches["Y"] = y_train
 
@@ -212,7 +231,5 @@ while True:
     if exi == 'q' or exi == 'Q':
         break
 
-for l in range(1, L + 1):
-    sl = str(l)
-    np.savez(param_dir + "\\Param" + sl,param["W" + sl], param["B" + sl])
-np.save(param_dir + "\\Hyperparam.npy", hyperparam)
+save_param(param, L)
+save_hyperparam(hyperparam)
